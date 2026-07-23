@@ -124,7 +124,46 @@ function fillCategories(){ category.replaceChildren(); Object.entries(C).forEach
 function fillUnits(reset=false){ const c=cat(), fv=reset?c.d[0]:from.value, tv=reset?c.d[1]:to.value; [from,to].forEach(s=>{s.replaceChildren();c.u.forEach(u=>{const o=document.createElement("option");o.value=u.id;o.textContent=label(u);s.append(o)})}); from.value=c.u.some(u=>u.id===fv)?fv:c.d[0]; to.value=c.u.some(u=>u.id===tv)?tv:c.d[1]; }
 function fmt(n){ if(!Number.isFinite(n))return""; const a=Math.abs(n); if((a&&a<1e-7)||a>=1e15)return n.toExponential(8).replace(/\.?0+e/,"e"); return new Intl.NumberFormat(lang==="th"?"th-TH":"en-US",{maximumSignificantDigits:12,useGrouping:true}).format(n); }
 function base(u,v){return u.toBase?u.toBase(v):v*u.factor} function out(u,v){return u.fromBase?u.fromBase(v):v/u.factor}
-function convert(){ const v=Number(amount.value), c=cat(), f=c.u.find(u=>u.id===from.value), t=c.u.find(u=>u.id===to.value); if(!Number.isFinite(v)||!f||!t){result.textContent="—";resultUnit.textContent="";formula.textContent=T[lang].invalid;return} const cv=out(t,base(f,v)); result.textContent=fmt(cv);resultUnit.textContent=t.symbol;formula.textContent=`${fmt(v)} ${f.symbol} = ${fmt(cv)} ${t.symbol}`; }
+
+function humanTime(totalSeconds){
+  if(!Number.isFinite(totalSeconds)) return "";
+  const sign=totalSeconds<0?"−":"";
+  let ms=Math.round(Math.abs(totalSeconds)*1000);
+  const parts=[];
+  const units=[
+    [604800000,{th:"สัปดาห์",en:["week","weeks"]}],
+    [86400000,{th:"วัน",en:["day","days"]}],
+    [3600000,{th:"ชั่วโมง",en:["hour","hours"]}],
+    [60000,{th:"นาที",en:["minute","minutes"]}],
+    [1000,{th:"วินาที",en:["second","seconds"]}]
+  ];
+  for(const [size,name] of units){
+    const value=Math.floor(ms/size);
+    if(value){
+      parts.push(lang==="th"?`${fmt(value)} ${name.th}`:`${fmt(value)} ${value===1?name.en[0]:name.en[1]}`);
+      ms-=value*size;
+    }
+  }
+  if(ms || parts.length===0){
+    parts.push(lang==="th"?`${fmt(ms)} มิลลิวินาที`:`${fmt(ms)} ${ms===1?"millisecond":"milliseconds"}`);
+  }
+  return sign+parts.join(" ");
+}
+
+function convert(){
+  const v=Number(amount.value), c=cat(), f=c.u.find(u=>u.id===from.value), t=c.u.find(u=>u.id===to.value);
+  if(!Number.isFinite(v)||!f||!t){result.textContent="—";resultUnit.textContent="";formula.textContent=T[lang].invalid;return}
+  const baseValue=base(f,v), cv=out(t,baseValue);
+  result.textContent=fmt(cv);
+  resultUnit.textContent=t.symbol;
+  const equation=`${fmt(v)} ${f.symbol} = ${fmt(cv)} ${t.symbol}`;
+  if(categoryId==="time"){
+    const easy=humanTime(baseValue);
+    formula.textContent=lang==="th"?`${equation}\nอ่านง่าย: ${easy}`:`${equation}\nEasy to read: ${easy}`;
+  }else{
+    formula.textContent=equation;
+  }
+}
 function applyLanguage(l){lang=l;localStorage.setItem("gukgu-language",lang);document.documentElement.lang=lang;document.querySelectorAll("[data-i18n]").forEach(e=>e.textContent=T[lang][e.dataset.i18n]);document.querySelectorAll("[data-i18n-aria]").forEach(e=>e.setAttribute("aria-label",T[lang][e.dataset.i18nAria]));langButtons.forEach(b=>{const a=b.dataset.lang===lang;b.classList.toggle("is-active",a);b.setAttribute("aria-pressed",String(a))});document.title=lang==="th"?"gukgu — แปลงหน่วย":"gukgu — Unit converter";fillCategories();fillUnits(false);convert();}
 category.addEventListener("change",()=>{categoryId=category.value;localStorage.setItem("gukgu-category",categoryId);fillUnits(true);convert()}); amount.addEventListener("input",convert);from.addEventListener("change",convert);to.addEventListener("change",convert);
 swap.addEventListener("click",()=>{const v=Number(amount.value),c=cat(),f=c.u.find(u=>u.id===from.value),t=c.u.find(u=>u.id===to.value);if(Number.isFinite(v)&&f&&t)amount.value=Number(out(t,base(f,v)).toPrecision(12)).toString();[from.value,to.value]=[to.value,from.value];swap.classList.remove("is-swapping");void swap.offsetWidth;swap.classList.add("is-swapping");setTimeout(()=>swap.classList.remove("is-swapping"),220);convert()});langButtons.forEach(b=>b.addEventListener("click",()=>applyLanguage(b.dataset.lang)));
