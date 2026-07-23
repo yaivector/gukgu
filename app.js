@@ -198,17 +198,12 @@ function smartAnswer(categoryId, baseValue, target){
     ]);
   }
   if(categoryId==="mass"){
-    const imperial=["oz","lb","st","shortton","longton"];
-    if(imperial.includes(target.id)){
-      const ounces=baseValue/0.028349523125;
-      return breakdownMetric(ounces,[
-        {size:16,th:"ปอนด์",en:"pound"},{size:1,th:"ออนซ์",en:"ounce"}
-      ]);
-    }
-    return breakdownMetric(baseValue,[
-      {size:1000,th:"ตัน",en:"tonne"},{size:1,th:"กิโลกรัม",en:"kilogram"},
-      {size:.001,th:"กรัม",en:"gram"},{size:1e-6,th:"มิลลิกรัม",en:"milligram"}
-    ]);
+    // แสดงน้ำหนักเป็นหน่วยปลายทางโดยตรง เช่น 6 kg = 13.23 lb
+    const converted=out(target,baseValue);
+    const absolute=Math.abs(converted);
+    const digits=absolute>=1?2:absolute>=0.01?4:6;
+    const displayed=cleanRound(converted,digits);
+    return `${fmt(displayed)} ${target.names[lang]}`;
   }
   if(categoryId==="area"){
     const thai=["rai","ngan","sqwah"];
@@ -245,6 +240,11 @@ function explanation(categoryId,input,fromUnit,targetUnit,converted,answer){
     }
   }
   const factorText=fromUnit.toBase||targetUnit.fromBase?equation:`${fmt(input)} × ${fmt(fromUnit.factor)} ÷ ${fmt(targetUnit.factor)} = ${fmt(converted)}`;
+  if(categoryId==="mass"){
+    return lang==="th"
+      ? `${factorText}\nคำตอบหลักปัดทศนิยมให้อ่านง่ายเป็น: ${answer}`
+      : `${factorText}\nThe main answer is rounded for readability: ${answer}`;
+  }
   return lang==="th"?`${factorText}\nแสดงคำตอบแบบแตกหน่วยเป็น: ${answer}`:`${factorText}\nShown in an easier form as: ${answer}`;
 }
 function convert(){
