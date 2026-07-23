@@ -48,10 +48,7 @@ const resultUnit = document.querySelector("#resultUnit");
 const formulaText = document.querySelector("#formulaText");
 const swapButton = document.querySelector("#swapButton");
 const langButtons = [...document.querySelectorAll(".lang-button")];
-const installCard = document.querySelector("#installCard");
-const installButton = document.querySelector("#installButton");
 
-let deferredInstallPrompt = null;
 let language = localStorage.getItem("gukgu-language")
   || (navigator.language.toLowerCase().startsWith("th") ? "th" : "en");
 
@@ -168,30 +165,5 @@ swapButton.addEventListener("click", () => {
 langButtons.forEach(button => {
   button.addEventListener("click", () => applyLanguage(button.dataset.lang));
 });
-
-window.addEventListener("beforeinstallprompt", event => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-  installCard.hidden = false;
-});
-
-installButton.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  installCard.hidden = true;
-});
-
-window.addEventListener("appinstalled", () => {
-  installCard.hidden = true;
-  deferredInstallPrompt = null;
-});
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(console.error);
-  });
-}
 
 applyLanguage(language);
