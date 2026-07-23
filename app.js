@@ -1,241 +1,182 @@
-(function () {
-  "use strict";
+const units = [
+  { id: "mm", factor: 0.001, symbol: "mm", names: { th: "มิลลิเมตร", en: "Millimeter" }, result: { th: "มม.", en: "mm" } },
+  { id: "cm", factor: 0.01, symbol: "cm", names: { th: "เซนติเมตร", en: "Centimeter" }, result: { th: "ซม.", en: "cm" } },
+  { id: "m", factor: 1, symbol: "m", names: { th: "เมตร", en: "Meter" }, result: { th: "ม.", en: "m" } },
+  { id: "km", factor: 1000, symbol: "km", names: { th: "กิโลเมตร", en: "Kilometer" }, result: { th: "กม.", en: "km" } },
+  { id: "in", factor: 0.0254, symbol: "in", names: { th: "นิ้ว", en: "Inch" }, result: { th: "นิ้ว", en: "in" } },
+  { id: "ft", factor: 0.3048, symbol: "ft", names: { th: "ฟุต", en: "Foot" }, result: { th: "ฟุต", en: "ft" } },
+  { id: "yd", factor: 0.9144, symbol: "yd", names: { th: "หลา", en: "Yard" }, result: { th: "หลา", en: "yd" } },
+  { id: "mi", factor: 1609.344, symbol: "mi", names: { th: "ไมล์", en: "Mile" }, result: { th: "ไมล์", en: "mi" } }
+];
 
-  var units = {
-    mm: { name: "มิลลิเมตร", short: "มม.", symbol: "mm", meters: 0.001 },
-    cm: { name: "เซนติเมตร", short: "ซม.", symbol: "cm", meters: 0.01 },
-    m:  { name: "เมตร", short: "เมตร", symbol: "m", meters: 1 },
-    km: { name: "กิโลเมตร", short: "กม.", symbol: "km", meters: 1000 },
-    in: { name: "นิ้ว", short: "นิ้ว", symbol: "in", meters: 0.0254 },
-    ft: { name: "ฟุต", short: "ฟุต", symbol: "ft", meters: 0.3048 },
-    yd: { name: "หลา", short: "หลา", symbol: "yd", meters: 0.9144 },
-    mi: { name: "ไมล์", short: "ไมล์", symbol: "mi", meters: 1609.344 }
-  };
+const messages = {
+  th: {
+    title: "แปลงระยะ",
+    amount: "จำนวน",
+    from: "จาก",
+    to: "เป็น",
+    result: "ผล",
+    swap: "สลับหน่วย",
+    installTitle: "พร้อมใช้ออฟไลน์",
+    installDescription: "ติดตั้งบนมือถือหรือคอม แล้วเปิดใช้ได้แม้ไม่มีเน็ต",
+    installButton: "ติดตั้ง",
+    footer: "คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง",
+    invalid: "กรุณาใส่ตัวเลข",
+    formula: (value, from, to) => `${value} ${from} = ${to}`
+  },
+  en: {
+    title: "Length converter",
+    amount: "Value",
+    from: "From",
+    to: "To",
+    result: "Result",
+    swap: "Swap units",
+    installTitle: "Works offline",
+    installDescription: "Install on your phone or computer and use it without internet",
+    installButton: "Install",
+    footer: "Calculated on your device. No data is sent anywhere.",
+    invalid: "Enter a number",
+    formula: (value, from, to) => `${value} ${from} = ${to}`
+  }
+};
 
-  var valueInput = document.getElementById("valueInput");
-  var fromUnit = document.getElementById("fromUnit");
-  var toUnit = document.getElementById("toUnit");
-  var resultNumber = document.getElementById("resultNumber");
-  var resultUnit = document.getElementById("resultUnit");
-  var equation = document.getElementById("equation");
-  var allValues = document.getElementById("allValues");
-  var status = document.getElementById("status");
-  var installButton = document.getElementById("installButton");
-  var installHelp = document.getElementById("installHelp");
-  var deferredInstallPrompt = null;
+const amount = document.querySelector("#amount");
+const fromUnit = document.querySelector("#fromUnit");
+const toUnit = document.querySelector("#toUnit");
+const resultValue = document.querySelector("#resultValue");
+const resultUnit = document.querySelector("#resultUnit");
+const formulaText = document.querySelector("#formulaText");
+const swapButton = document.querySelector("#swapButton");
+const langButtons = [...document.querySelectorAll(".lang-button")];
+const installCard = document.querySelector("#installCard");
+const installButton = document.querySelector("#installButton");
 
-  function addOptions() {
-    Object.keys(units).forEach(function (key) {
-      var unit = units[key];
-      fromUnit.add(new Option(unit.name + " (" + unit.symbol + ")", key));
-      toUnit.add(new Option(unit.name + " (" + unit.symbol + ")", key));
+let deferredInstallPrompt = null;
+let language = localStorage.getItem("gukgu-language")
+  || (navigator.language.toLowerCase().startsWith("th") ? "th" : "en");
+
+function unitLabel(unit) {
+  // The full label is intentionally one line: “เซนติเมตร (cm)”.
+  return `${unit.names[language]} (${unit.symbol})`;
+}
+
+function populateUnitSelects() {
+  const currentFrom = fromUnit.value || "in";
+  const currentTo = toUnit.value || "cm";
+
+  for (const select of [fromUnit, toUnit]) {
+    select.replaceChildren();
+    units.forEach(unit => {
+      const option = document.createElement("option");
+      option.value = unit.id;
+      option.textContent = unitLabel(unit);
+      select.append(option);
     });
-    fromUnit.value = "in";
-    toUnit.value = "cm";
   }
 
-  function formatNumber(number) {
-    if (!isFinite(number)) return "—";
+  fromUnit.value = currentFrom;
+  toUnit.value = currentTo;
+}
 
-    var absolute = Math.abs(number);
+function formatNumber(number) {
+  if (!Number.isFinite(number)) return "";
+  const magnitude = Math.abs(number);
 
-    if ((absolute !== 0 && absolute < 0.000001) || absolute >= 1000000000000) {
-      return number.toExponential(6);
-    }
+  let maximumFractionDigits = 6;
+  if (magnitude >= 1000) maximumFractionDigits = 3;
+  if (magnitude >= 1000000) maximumFractionDigits = 2;
 
-    try {
-      return new Intl.NumberFormat("th-TH", {
-        maximumFractionDigits: 10
-      }).format(number);
-    } catch (error) {
-      return String(Math.round(number * 10000000000) / 10000000000);
-    }
-  }
+  return new Intl.NumberFormat(language === "th" ? "th-TH" : "en-US", {
+    maximumFractionDigits,
+    useGrouping: true
+  }).format(number);
+}
 
-  function convert(value, from, to) {
-    return (value * units[from].meters) / units[to].meters;
-  }
+function convert() {
+  const numericValue = Number(amount.value);
+  const from = units.find(unit => unit.id === fromUnit.value);
+  const to = units.find(unit => unit.id === toUnit.value);
 
-  function showError(message) {
-    resultNumber.textContent = "—";
+  if (!Number.isFinite(numericValue)) {
+    resultValue.textContent = "—";
     resultUnit.textContent = "";
-    equation.textContent = message;
-    allValues.innerHTML = "";
+    formulaText.textContent = messages[language].invalid;
+    return;
   }
 
-  function renderAll(value, from) {
-    var fragment = document.createDocumentFragment();
+  const converted = numericValue * from.factor / to.factor;
+  resultValue.textContent = formatNumber(converted);
+  resultUnit.textContent = to.result[language];
+  formulaText.textContent = messages[language].formula(
+    formatNumber(numericValue),
+    from.symbol,
+    `${formatNumber(converted)} ${to.symbol}`
+  );
+}
 
-    Object.keys(units).forEach(function (key) {
-      var unit = units[key];
-      var row = document.createElement("div");
-      var label = document.createElement("span");
-      var converted = document.createElement("strong");
+function applyLanguage(nextLanguage) {
+  language = nextLanguage;
+  localStorage.setItem("gukgu-language", language);
+  document.documentElement.lang = language;
 
-      row.className = "value-row";
-      label.textContent = unit.name;
-      converted.textContent = formatNumber(convert(value, from, key)) + " " + unit.symbol;
-
-      row.appendChild(label);
-      row.appendChild(converted);
-      fragment.appendChild(row);
-    });
-
-    allValues.innerHTML = "";
-    allValues.appendChild(fragment);
-  }
-
-  function saveState(raw, from, to) {
-    try {
-      localStorage.setItem("gukgu-length-v1", JSON.stringify({
-        value: raw,
-        from: from,
-        to: to
-      }));
-    } catch (error) {
-      /* Storage failure must never stop conversion. */
-    }
-  }
-
-  function restoreState() {
-    try {
-      var saved = JSON.parse(localStorage.getItem("gukgu-length-v1"));
-      if (!saved || !units[saved.from] || !units[saved.to]) return;
-
-      valueInput.value = typeof saved.value === "string" ? saved.value : "1";
-      fromUnit.value = saved.from;
-      toUnit.value = saved.to;
-    } catch (error) {
-      /* Damaged saved data is ignored. */
-    }
-  }
-
-  function update() {
-    var raw = String(valueInput.value).trim();
-    var value = Number(raw);
-    var from = fromUnit.value;
-    var to = toUnit.value;
-
-    if (!units[from] || !units[to]) {
-      fromUnit.value = "in";
-      toUnit.value = "cm";
-      showError("หน่วยไม่ถูกต้อง กรุณาเลือกใหม่");
-      return;
-    }
-
-    if (raw === "") {
-      showError("ใส่ตัวเลข");
-      return;
-    }
-
-    if (!isFinite(value)) {
-      showError("ตัวเลขไม่ถูกต้อง");
-      return;
-    }
-
-    var result = convert(value, from, to);
-
-    resultNumber.textContent = formatNumber(result);
-    resultUnit.textContent = units[to].short;
-    equation.textContent =
-      "1 " + units[from].name + " = " +
-      formatNumber(convert(1, from, to)) + " " + units[to].name;
-
-    renderAll(value, from);
-    saveState(raw, from, to);
-  }
-
-  function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    }
-
-    return new Promise(function (resolve, reject) {
-      var textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-
-      try {
-        document.execCommand("copy") ? resolve() : reject();
-      } catch (error) {
-        reject(error);
-      }
-
-      document.body.removeChild(textarea);
-    });
-  }
-
-  document.getElementById("swapButton").addEventListener("click", function () {
-    var oldFrom = fromUnit.value;
-    fromUnit.value = toUnit.value;
-    toUnit.value = oldFrom;
-    update();
+  document.querySelectorAll("[data-i18n]").forEach(element => {
+    element.textContent = messages[language][element.dataset.i18n];
   });
 
-  document.getElementById("copyButton").addEventListener("click", function () {
-    if (resultNumber.textContent === "—") return;
-
-    var text =
-      valueInput.value + " " + units[fromUnit.value].name +
-      " = " + resultNumber.textContent + " " + units[toUnit.value].name;
-
-    copyText(text).then(function () {
-      status.textContent = "คัดลอกแล้ว";
-    }).catch(function () {
-      status.textContent = "คัดลอกไม่สำเร็จ";
-    });
-
-    window.setTimeout(function () {
-      status.textContent = "";
-    }, 1800);
+  document.querySelectorAll("[data-i18n-aria]").forEach(element => {
+    element.setAttribute("aria-label", messages[language][element.dataset.i18nAria]);
   });
 
-  document.getElementById("clearButton").addEventListener("click", function () {
-    valueInput.value = "";
-    update();
-    valueInput.focus();
+  langButtons.forEach(button => {
+    const active = button.dataset.lang === language;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
 
-  valueInput.addEventListener("input", update);
-  fromUnit.addEventListener("change", update);
-  toUnit.addEventListener("change", update);
+  document.title = language === "th"
+    ? "gukgu — แปลงระยะ"
+    : "gukgu — Length converter";
 
-  window.addEventListener("beforeinstallprompt", function (event) {
-    event.preventDefault();
-    deferredInstallPrompt = event;
+  populateUnitSelects();
+  convert();
+}
+
+amount.addEventListener("input", convert);
+fromUnit.addEventListener("change", convert);
+toUnit.addEventListener("change", convert);
+
+swapButton.addEventListener("click", () => {
+  [fromUnit.value, toUnit.value] = [toUnit.value, fromUnit.value];
+  convert();
+});
+
+langButtons.forEach(button => {
+  button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+});
+
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installCard.hidden = false;
+});
+
+installButton.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installCard.hidden = true;
+});
+
+window.addEventListener("appinstalled", () => {
+  installCard.hidden = true;
+  deferredInstallPrompt = null;
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(console.error);
   });
+}
 
-  installButton.addEventListener("click", function () {
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      deferredInstallPrompt.userChoice.finally(function () {
-        deferredInstallPrompt = null;
-      });
-      return;
-    }
-
-    installHelp.hidden = !installHelp.hidden;
-  });
-
-  window.addEventListener("appinstalled", function () {
-    installButton.textContent = "ติดตั้งแล้ว";
-    installButton.disabled = true;
-    installHelp.hidden = true;
-  });
-
-  addOptions();
-  restoreState();
-  update();
-
-  if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("service-worker.js").catch(function () {
-        /* Offline installation failure must not affect the converter. */
-      });
-    });
-  }
-}());
+applyLanguage(language);

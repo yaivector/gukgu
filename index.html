@@ -1,102 +1,71 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f6f6f2">
-  <meta name="color-scheme" content="light">
-  <meta name="description" content="GUKGU แปลงและเทียบหน่วยระยะ ฟรี ไม่มีโฆษณา ติดตั้งได้ และพร้อมใช้ออฟไลน์">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="./">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="assets/gukgu-bird.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css">
-  <title>แปลงระยะ — GUKGU</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="description" content="Gukgu เครื่องมือแปลงหน่วยระยะ ใช้ง่าย รองรับไทยและอังกฤษ ทำงานออฟไลน์ได้" />
+  <link rel="icon" href="gukgu-logo.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>gukgu — แปลงระยะ</title>
 </head>
-
 <body>
-  <a class="skip-link" href="#tool">ข้ามไปที่เครื่องมือ</a>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Gukgu home">
+      <img src="gukgu-logo.svg" alt="" width="58" height="58" />
+      <span>gukgu</span>
+    </a>
 
-  <main class="page">
-    <header class="brand" aria-label="GUKGU">
-      <img src="assets/gukgu-bird.svg" alt="" width="58" height="64">
-      <span class="brand-name">gukgu</span>
-    </header>
+    <div class="header-actions">
+      <div class="language-switcher" role="group" aria-label="Language">
+        <button class="lang-button is-active" type="button" data-lang="th" aria-pressed="true">ไทย</button>
+        <button class="lang-button" type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
 
-    <section class="install-banner" aria-labelledby="install-title">
+  <main class="page-shell">
+    <section id="installCard" class="install-card" hidden>
       <div>
-        <strong id="install-title">พร้อมใช้ออฟไลน์</strong>
-        <p>ติดตั้งบนมือถือหรือคอม แล้วเปิดใช้ได้แม้ไม่มีเน็ต</p>
+        <h2 data-i18n="installTitle">พร้อมใช้ออฟไลน์</h2>
+        <p data-i18n="installDescription">ติดตั้งบนมือถือหรือคอม แล้วเปิดใช้ได้แม้ไม่มีเน็ต</p>
       </div>
-      <button id="installButton" class="install-button" type="button">ติดตั้ง</button>
+      <button id="installButton" class="install-button" type="button" data-i18n="installButton">ติดตั้ง</button>
     </section>
 
-    <section id="installHelp" class="install-help" hidden>
-      <strong>วิธีเพิ่มไว้บนเครื่อง</strong>
-      <p><b>Android / คอม:</b> เปิดเมนูเบราว์เซอร์ แล้วเลือก “ติดตั้งแอป” หรือ “เพิ่มลงหน้าจอหลัก”</p>
-      <p><b>iPhone / iPad:</b> กดปุ่มแชร์ แล้วเลือก “เพิ่มไปยังหน้าจอโฮม”</p>
-    </section>
+    <section class="converter-card" aria-labelledby="converterTitle">
+      <h1 id="converterTitle" data-i18n="title">แปลงระยะ</h1>
 
-    <noscript>
-      <section class="error-box">
-        เว็บนี้ต้องเปิด JavaScript เพื่อคำนวณอัตโนมัติ แต่หน้านี้ยังแสดงได้ตามปกติ
+      <div class="field">
+        <label for="amount" data-i18n="amount">จำนวน</label>
+        <input id="amount" type="number" inputmode="decimal" value="8" step="any" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label for="fromUnit" data-i18n="from">จาก</label>
+        <select id="fromUnit"></select>
+      </div>
+
+      <button id="swapButton" class="swap-button" type="button" aria-label="สลับหน่วย" data-i18n-aria="swap">
+        <span aria-hidden="true">⇄</span>
+      </button>
+
+      <div class="field">
+        <label for="toUnit" data-i18n="to">เป็น</label>
+        <select id="toUnit"></select>
+      </div>
+
+      <section class="result-card" aria-live="polite" aria-atomic="true">
+        <span class="result-label" data-i18n="result">ผล</span>
+        <strong id="resultValue">20.32</strong>
+        <span id="resultUnit">ซม.</span>
       </section>
-    </noscript>
 
-    <section id="tool" class="card" aria-labelledby="tool-title">
-      <h1 id="tool-title">แปลงระยะ</h1>
-
-      <label for="valueInput">จำนวน</label>
-      <input
-        id="valueInput"
-        name="value"
-        type="number"
-        inputmode="decimal"
-        autocomplete="off"
-        step="any"
-        value="1"
-      >
-
-      <div class="unit-row">
-        <div>
-          <label for="fromUnit">จาก</label>
-          <select id="fromUnit" name="from"></select>
-        </div>
-
-        <button id="swapButton" class="swap-button" type="button" aria-label="สลับหน่วย">⇄</button>
-
-        <div>
-          <label for="toUnit">เป็น</label>
-          <select id="toUnit" name="to"></select>
-        </div>
-      </div>
-
-      <div class="result" aria-live="polite" aria-atomic="true">
-        <span>ผล</span>
-        <strong id="resultNumber">2.54</strong>
-        <b id="resultUnit">ซม.</b>
-      </div>
-
-      <p id="equation" class="equation">1 นิ้ว = 2.54 เซนติเมตร</p>
-
-      <div class="actions">
-        <button id="copyButton" class="button button-main" type="button">คัดลอก</button>
-        <button id="clearButton" class="button button-light" type="button">ล้าง</button>
-      </div>
-
-      <p id="status" class="status" aria-live="polite"></p>
+      <p id="formulaText" class="formula-text"></p>
     </section>
 
-    <section class="card compare-card" aria-labelledby="compare-title">
-      <h2 id="compare-title">เทียบทุกหน่วย</h2>
-      <div id="allValues" class="value-list"></div>
-    </section>
-
-    <footer>
-      <p>ฟรี • ไม่มีโฆษณา • ไม่ส่งข้อมูลออกจากเครื่อง</p>
-      <p>ออกแบบและพัฒนาโดย <strong>gukgu</strong></p>
-    </footer>
+    <p class="footer-note" data-i18n="footer">คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง</p>
   </main>
 
   <script src="app.js" defer></script>

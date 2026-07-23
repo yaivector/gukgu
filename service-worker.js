@@ -1,49 +1,41 @@
-var CACHE_NAME = "gukgu-length-v1-0-0";
-var CORE_FILES = [
+const CACHE_NAME = "gukgu-v2";
+const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
-  "./assets/gukgu-bird.svg",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./gukgu-logo.svg"
 ];
 
-self.addEventListener("install", function (event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(CORE_FILES);
-    })
-  );
+self.addEventListener("install", event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 
-self.addEventListener("activate", function (event) {
+self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (key) {
-        if (key !== CACHE_NAME) return caches.delete(key);
-      }));
-    })
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
+    )
   );
   self.clients.claim();
 });
 
-self.addEventListener("fetch", function (event) {
+self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
+    caches.match(event.request).then(cached => {
       if (cached) return cached;
 
-      return fetch(event.request).then(function (response) {
-        return response;
-      }).catch(function () {
-        if (event.request.mode === "navigate") {
-          return caches.match("./index.html");
-        }
-      });
+      return fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match("./index.html"));
     })
   );
 });
