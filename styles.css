@@ -327,3 +327,9 @@ select {
   font-size: .78rem;
   letter-spacing: .03em;
 }
+
+#category { font-weight: 700; }
+@media (max-width: 620px) {
+  #category { font-size: 1.05rem; }
+  .unit-field select { text-overflow: ellipsis; }
+}
