@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111111" />
   <meta name="description" content="Gukgu เครื่องมือแปลงหน่วยระยะ ใช้ง่าย รองรับไทยและอังกฤษ ทำงานออฟไลน์ได้" />
-  <link rel="icon" href="gukgu-logo.svg?v=1.4.0" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=1.4.0" />
+  <link rel="icon" href="gukgu-logo.svg?v=2.0.0" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css?v=2.0.0" />
   <title>gukgu — แปลงระยะ</title>
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="./" aria-label="Gukgu home">
-      <img src="gukgu-logo.svg?v=1.4.0" alt="" width="58" height="58" />
+      <img src="gukgu-logo.svg?v=2.0.0" alt="" width="58" height="58" />
       <span>gukgu</span>
     </a>
 
@@ -56,30 +56,26 @@
       </div>
 
       <section class="result-card" aria-live="polite" aria-atomic="true">
-        <span class="result-label" data-i18n="result">ผล</span>
-        <strong id="resultValue">20.32</strong>
-        <span id="resultUnit">ซม.</span>
+        <span class="result-label" data-i18n="answer">คำตอบ</span>
+        <strong id="resultValue">20.32 เซนติเมตร</strong>
+        <span id="resultUnit" hidden></span>
       </section>
 
-      <p id="formulaText" class="formula-text"></p>
-
-      <section id="smartResult" class="smart-result" hidden>
-        <div class="smart-result-heading">
-          <span data-i18n="easyRead">อ่านง่าย</span>
-          <button id="explainButton" class="info-button" type="button" aria-expanded="false" aria-controls="explanationPanel" data-i18n-aria="showMethod">ⓘ</button>
+      <details id="detailsPanel" class="details-panel">
+        <summary data-i18n="showDetails">ⓘ ดูรายละเอียด</summary>
+        <div class="details-content">
+          <span class="details-title" data-i18n="mathValue">ค่าทางคณิตศาสตร์</span>
+          <p id="formulaText" class="formula-text"></p>
+          <span class="details-title" data-i18n="method">วิธีคำนวณ</span>
+          <p id="explanationText" class="explanation-text"></p>
         </div>
-        <strong id="easyResult" class="easy-result"></strong>
-        <div id="explanationPanel" class="explanation-panel" hidden>
-          <span class="explanation-title" data-i18n="method">วิธีคิด</span>
-          <p id="explanationText"></p>
-        </div>
-      </section>
+      </details>
     </section>
 
     <p class="footer-note" data-i18n="footer">คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง</p>
-    <p class="version-note">gukgu v1.4.0</p>
+    <p class="version-note">gukgu v2.0.0</p>
   </main>
 
-  <script src="app.js?v=1.4.0" defer></script>
+  <script src="app.js?v=2.0.0" defer></script>
 </body>
 </html>

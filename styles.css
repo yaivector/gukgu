@@ -345,3 +345,50 @@ select {
 .explanation-title{font-weight:800}
 .explanation-panel p{margin:8px 0 0;white-space:pre-line;color:var(--muted);line-height:1.65}
 @media(max-width:620px){.smart-result{padding:18px 16px}}
+
+
+/* v2.0 Human-first answer */
+#resultValue {
+  font-family: "Noto Sans Thai", system-ui, sans-serif;
+  font-size: clamp(2.25rem, 9vw, 4.2rem);
+  line-height: 1.25;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+.details-panel {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fafaf7;
+  overflow: hidden;
+}
+.details-panel summary {
+  padding: 15px 18px;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 700;
+  list-style: none;
+  user-select: none;
+}
+.details-panel summary::-webkit-details-marker { display: none; }
+.details-panel[open] summary { border-bottom: 1px solid var(--line); }
+.details-content { padding: 18px; }
+.details-title {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+.details-title:not(:first-child) { margin-top: 18px; }
+.formula-text, .explanation-text {
+  min-height: 0;
+  margin: 0;
+  color: var(--muted);
+  text-align: left;
+  white-space: pre-line;
+  line-height: 1.7;
+}
+@media (max-width: 620px) {
+  #resultValue { font-size: clamp(2rem, 10vw, 3.2rem); }
+  .details-panel summary { padding: 14px 16px; }
+  .details-content { padding: 16px; }
+}

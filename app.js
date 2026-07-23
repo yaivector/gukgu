@@ -110,11 +110,11 @@ const C = {
 };
 
 const T={
- th:{title:"แปลงหน่วย",category:"ประเภทหน่วย",amount:"จำนวน",from:"จาก",to:"เป็น",result:"ผล",swap:"สลับหน่วย",footer:"คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง",invalid:"กรุณาใส่ตัวเลข",easyRead:"อ่านง่าย",showMethod:"แสดงวิธีคิด",hideMethod:"ซ่อนวิธีคิด",method:"วิธีคิด"},
- en:{title:"Unit converter",category:"Category",amount:"Value",from:"From",to:"To",result:"Result",swap:"Swap units",footer:"Calculated on your device. No data is sent anywhere.",invalid:"Enter a number",easyRead:"Easy to read",showMethod:"Show calculation",hideMethod:"Hide calculation",method:"How it is calculated"}
+ th:{title:"แปลงหน่วย",category:"ประเภทหน่วย",amount:"จำนวน",from:"จาก",to:"เป็น",answer:"คำตอบ",swap:"สลับหน่วย",footer:"คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง",invalid:"กรุณาใส่ตัวเลข",showDetails:"ⓘ ดูรายละเอียด",mathValue:"ค่าทางคณิตศาสตร์",method:"วิธีคำนวณ"},
+ en:{title:"Unit converter",category:"Category",amount:"Value",from:"From",to:"To",answer:"Answer",swap:"Swap units",footer:"Calculated on your device. No data is sent anywhere.",invalid:"Enter a number",showDetails:"ⓘ Show details",mathValue:"Mathematical value",method:"Calculation"}
 };
 
-const $=s=>document.querySelector(s), category=$("#category"), amount=$("#amount"), from=$("#fromUnit"), to=$("#toUnit"), result=$("#resultValue"), resultUnit=$("#resultUnit"), formula=$("#formulaText"), swap=$("#swapButton"), smartResult=$("#smartResult"), easyResult=$("#easyResult"), explainButton=$("#explainButton"), explanationPanel=$("#explanationPanel"), explanationText=$("#explanationText"), langButtons=[...document.querySelectorAll(".lang-button")];
+const $=s=>document.querySelector(s), category=$("#category"), amount=$("#amount"), from=$("#fromUnit"), to=$("#toUnit"), result=$("#resultValue"), resultUnit=$("#resultUnit"), formula=$("#formulaText"), swap=$("#swapButton"), detailsPanel=$("#detailsPanel"), explanationText=$("#explanationText"), langButtons=[...document.querySelectorAll(".lang-button")];
 let lang=localStorage.getItem("gukgu-language")||(navigator.language.toLowerCase().startsWith("th")?"th":"en");
 let categoryId=localStorage.getItem("gukgu-category")||"length";
 const cat=()=>C[categoryId];
@@ -151,36 +151,116 @@ function humanTime(totalSeconds){
 }
 
 
-function isNearlyInteger(value){ return Math.abs(value-Math.round(value))<1e-10; }
-function timeExplanation(value,targetUnit,easy){
-  const rules={week:{m:7,th:"วัน",en:["day","days"]},day:{m:24,th:"ชั่วโมง",en:["hour","hours"]},hour:{m:60,th:"นาที",en:["minute","minutes"]},min:{m:60,th:"วินาที",en:["second","seconds"]},sec:{m:1000,th:"มิลลิวินาที",en:["millisecond","milliseconds"]}};
-  const rule=rules[targetUnit.id];
-  if(!rule)return lang==="th"?`ผลลัพธ์แบบอ่านง่ายคือ ${easy}`:`The easy-to-read result is ${easy}.`;
-  const whole=Math.trunc(value), fraction=Math.abs(value-whole), smaller=fraction*rule.m;
-  if(lang==="th")return `${fmt(value)} ${targetUnit.names.th}\n= ${fmt(whole)} ${targetUnit.names.th} + ${fmt(fraction)} ${targetUnit.names.th}\n${fmt(fraction)} × ${rule.m} = ${fmt(smaller)} ${rule.th}\nดังนั้น = ${easy}`;
-  const next=Math.abs(smaller-1)<1e-10?rule.en[0]:rule.en[1];
-  return `${fmt(value)} ${targetUnit.names.en}\n= ${fmt(whole)} ${targetUnit.names.en} + ${fmt(fraction)} ${targetUnit.names.en}\n${fmt(fraction)} × ${rule.m} = ${fmt(smaller)} ${next}\nTherefore = ${easy}`;
+function isNearlyInteger(value){ return Math.abs(value-Math.round(value))<1e-9; }
+function cleanRound(value, digits=9){
+  const rounded=Number(value.toFixed(digits));
+  return Math.abs(rounded)<1e-12?0:rounded;
 }
-function hideSmartResult(){smartResult.hidden=true;explanationPanel.hidden=true;explainButton.setAttribute("aria-expanded","false");explainButton.setAttribute("aria-label",T[lang].showMethod);}
+function part(value, th, enSingular, enPlural=enSingular+"s"){
+  if(!value) return "";
+  return lang==="th"?`${fmt(value)} ${th}`:`${fmt(value)} ${Math.abs(value)===1?enSingular:enPlural}`;
+}
+function joinParts(parts){ return parts.filter(Boolean).join(" "); }
 
+function breakdownMetric(total, sizes){
+  const sign=total<0?"−":"";
+  let remaining=Math.abs(total);
+  const parts=[];
+  sizes.forEach((item,index)=>{
+    let value;
+    if(index===sizes.length-1){ value=cleanRound(remaining/item.size,6); }
+    else { value=Math.floor((remaining+1e-12)/item.size); remaining-=value*item.size; }
+    if(value) parts.push(part(value,item.th,item.en,item.enPlural));
+  });
+  return sign+(parts.length?parts.join(" "):part(0,sizes[sizes.length-1].th,sizes[sizes.length-1].en,sizes[sizes.length-1].enPlural));
+}
+
+function smartAnswer(categoryId, baseValue, target){
+  if(categoryId==="time"){
+    return breakdownMetric(baseValue,[
+      {size:604800,th:"สัปดาห์",en:"week"},{size:86400,th:"วัน",en:"day"},
+      {size:3600,th:"ชั่วโมง",en:"hour"},{size:60,th:"นาที",en:"minute"},{size:1,th:"วินาที",en:"second"}
+    ]);
+  }
+  if(categoryId==="length"){
+    const imperial=["in","ft","yd","mi"];
+    if(imperial.includes(target.id)){
+      const inches=baseValue/0.0254;
+      return breakdownMetric(inches,[
+        {size:63360,th:"ไมล์",en:"mile"},{size:36,th:"หลา",en:"yard"},
+        {size:12,th:"ฟุต",en:"foot",enPlural:"feet"},{size:1,th:"นิ้ว",en:"inch",enPlural:"inches"}
+      ]);
+    }
+    if(target.id==="nmi") return `${fmt(out(target,baseValue))} ${target.names[lang]}`;
+    return breakdownMetric(baseValue,[
+      {size:1000,th:"กิโลเมตร",en:"kilometer"},{size:1,th:"เมตร",en:"meter"},
+      {size:.01,th:"เซนติเมตร",en:"centimeter"},{size:.001,th:"มิลลิเมตร",en:"millimeter"}
+    ]);
+  }
+  if(categoryId==="mass"){
+    const imperial=["oz","lb","st","shortton","longton"];
+    if(imperial.includes(target.id)){
+      const ounces=baseValue/0.028349523125;
+      return breakdownMetric(ounces,[
+        {size:16,th:"ปอนด์",en:"pound"},{size:1,th:"ออนซ์",en:"ounce"}
+      ]);
+    }
+    return breakdownMetric(baseValue,[
+      {size:1000,th:"ตัน",en:"tonne"},{size:1,th:"กิโลกรัม",en:"kilogram"},
+      {size:.001,th:"กรัม",en:"gram"},{size:1e-6,th:"มิลลิกรัม",en:"milligram"}
+    ]);
+  }
+  if(categoryId==="area"){
+    const thai=["rai","ngan","sqwah"];
+    if(thai.includes(target.id)){
+      return breakdownMetric(baseValue,[
+        {size:1600,th:"ไร่",en:"rai",enPlural:"rai"},{size:400,th:"งาน",en:"ngan",enPlural:"ngan"},
+        {size:4,th:"ตารางวา",en:"square wah",enPlural:"square wah"},{size:1,th:"ตารางเมตร",en:"square meter"}
+      ]);
+    }
+    return `${fmt(out(target,baseValue))} ${target.names[lang]}`;
+  }
+  if(categoryId==="volume"){
+    const us=["tsp","tbsp","cup","usfloz","uspint","usquart","usgal"];
+    const uk=["ukfloz","ukpint","ukgal"];
+    if(us.includes(target.id)||uk.includes(target.id)) return `${fmt(out(target,baseValue))} ${target.names[lang]}`;
+    return breakdownMetric(baseValue,[
+      {size:1000,th:"ลูกบาศก์เมตร",en:"cubic meter"},{size:1,th:"ลิตร",en:"liter"},
+      {size:.001,th:"มิลลิลิตร",en:"milliliter"}
+    ]);
+  }
+  return `${fmt(out(target,baseValue))} ${target.names[lang]}`;
+}
+
+function explanation(categoryId,input,fromUnit,targetUnit,converted,answer){
+  const equation=`${fmt(input)} ${fromUnit.symbol} = ${fmt(converted)} ${targetUnit.symbol}`;
+  if(categoryId==="time"){
+    const whole=Math.trunc(converted), fraction=Math.abs(converted-whole);
+    if(!fraction) return lang==="th"?`${equation}\nคำตอบลงตัว จึงไม่ต้องแตกเป็นหน่วยย่อย`:`${equation}\nThe result is exact, so no smaller unit is needed.`;
+    const rules={week:[7,"วัน","days"],day:[24,"ชั่วโมง","hours"],hour:[60,"นาที","minutes"],min:[60,"วินาที","seconds"],sec:[1000,"มิลลิวินาที","milliseconds"]};
+    const rule=rules[targetUnit.id];
+    if(rule){
+      const smaller=cleanRound(fraction*rule[0],9);
+      return lang==="th"?`${equation}\n${fmt(converted)} = ${fmt(whole)} + ${fmt(fraction)}\n${fmt(fraction)} × ${rule[0]} = ${fmt(smaller)} ${rule[1]}\nดังนั้น ${answer}`:`${equation}\n${fmt(converted)} = ${fmt(whole)} + ${fmt(fraction)}\n${fmt(fraction)} × ${rule[0]} = ${fmt(smaller)} ${rule[2]}\nTherefore: ${answer}`;
+    }
+  }
+  const factorText=fromUnit.toBase||targetUnit.fromBase?equation:`${fmt(input)} × ${fmt(fromUnit.factor)} ÷ ${fmt(targetUnit.factor)} = ${fmt(converted)}`;
+  return lang==="th"?`${factorText}\nแสดงคำตอบแบบแตกหน่วยเป็น: ${answer}`:`${factorText}\nShown in an easier form as: ${answer}`;
+}
 function convert(){
   const v=Number(amount.value), c=cat(), f=c.u.find(u=>u.id===from.value), t=c.u.find(u=>u.id===to.value);
-  if(!Number.isFinite(v)||!f||!t){result.textContent="—";resultUnit.textContent="";formula.textContent=T[lang].invalid;return}
-  const baseValue=base(f,v), cv=out(t,baseValue);
-  result.textContent=fmt(cv);
-  resultUnit.textContent=t.symbol;
-  const equation=`${fmt(v)} ${f.symbol} = ${fmt(cv)} ${t.symbol}`;
-  formula.textContent=equation;
-  hideSmartResult();
-  if(categoryId==="time" && !isNearlyInteger(cv)){
-    const easy=humanTime(baseValue);
-    easyResult.textContent=easy;
-    explanationText.textContent=timeExplanation(cv,t,easy);
-    smartResult.hidden=false;
+  if(!Number.isFinite(v)||!f||!t){
+    result.textContent="—"; resultUnit.textContent=""; formula.textContent=T[lang].invalid; explanationText.textContent=""; return;
   }
+  const baseValue=base(f,v), cv=out(t,baseValue);
+  const smartCategories=["time","length","mass","area","volume"];
+  const answer=smartCategories.includes(categoryId)?smartAnswer(categoryId,baseValue,t):`${fmt(cv)} ${t.names[lang]}`;
+  result.textContent=answer;
+  resultUnit.textContent="";
+  formula.textContent=`${fmt(v)} ${f.symbol} = ${fmt(cv)} ${t.symbol}`;
+  explanationText.textContent=explanation(categoryId,v,f,t,cv,answer);
 }
 function applyLanguage(l){lang=l;localStorage.setItem("gukgu-language",lang);document.documentElement.lang=lang;document.querySelectorAll("[data-i18n]").forEach(e=>e.textContent=T[lang][e.dataset.i18n]);document.querySelectorAll("[data-i18n-aria]").forEach(e=>e.setAttribute("aria-label",T[lang][e.dataset.i18nAria]));langButtons.forEach(b=>{const a=b.dataset.lang===lang;b.classList.toggle("is-active",a);b.setAttribute("aria-pressed",String(a))});document.title=lang==="th"?"gukgu — แปลงหน่วย":"gukgu — Unit converter";fillCategories();fillUnits(false);convert();}
 category.addEventListener("change",()=>{categoryId=category.value;localStorage.setItem("gukgu-category",categoryId);fillUnits(true);convert()}); amount.addEventListener("input",convert);from.addEventListener("change",convert);to.addEventListener("change",convert);
-explainButton.addEventListener("click",()=>{const opening=explanationPanel.hidden;explanationPanel.hidden=!opening;explainButton.setAttribute("aria-expanded",String(opening));explainButton.setAttribute("aria-label",opening?T[lang].hideMethod:T[lang].showMethod);});
 swap.addEventListener("click",()=>{const v=Number(amount.value),c=cat(),f=c.u.find(u=>u.id===from.value),t=c.u.find(u=>u.id===to.value);if(Number.isFinite(v)&&f&&t)amount.value=Number(out(t,base(f,v)).toPrecision(12)).toString();[from.value,to.value]=[to.value,from.value];swap.classList.remove("is-swapping");void swap.offsetWidth;swap.classList.add("is-swapping");setTimeout(()=>swap.classList.remove("is-swapping"),220);convert()});langButtons.forEach(b=>b.addEventListener("click",()=>applyLanguage(b.dataset.lang)));
 fillCategories();fillUnits(true);applyLanguage(lang);
