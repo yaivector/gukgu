@@ -180,19 +180,45 @@ select {
   text-overflow: ellipsis;
 }
 
-.swap-button {
-  width: 100%;
-  min-height: 64px;
-  margin: -4px 0 22px;
-  border: 3px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--soft);
-  font-size: 2.15rem;
-  line-height: 1;
-  cursor: pointer;
+.unit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 8px;
 }
 
-.swap-button:active { transform: scale(.99); }
+.unit-field {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.unit-field select {
+  min-width: 0;
+}
+
+.swap-button {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 9px;
+  border: 3px solid var(--line);
+  border-radius: 50%;
+  background: var(--soft);
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  transform: rotate(0deg);
+}
+
+.swap-button.is-swapping {
+  transform: rotate(180deg);
+}
+
+.swap-button:active {
+  transform: scale(.96);
+}
 
 .result-card {
   margin-top: 30px;
@@ -277,16 +303,56 @@ select {
     white-space: nowrap;
     overflow: hidden;
   }
+
+  .unit-row {
+    grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .swap-button {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 11px;
+    font-size: 1.55rem;
+  }
+
+  .unit-field label {
+    font-size: 1.05rem;
+  }
+
+  .unit-field select {
+    min-height: 64px;
+    padding-inline: 12px 8px;
+    font-size: clamp(.92rem, 4vw, 1.12rem);
+  }
+
 }
 
 @media (max-width: 390px) {
   .site-header { align-items: flex-start; }
   .brand span { font-size: 2rem; }
   .lang-button { min-width: 46px; }
-  .converter-card { padding-inline: 16px; }
-  input, select { padding-inline: 16px; font-size: 1.12rem; }
+  .converter-card { padding-inline: 14px; }
+  input { padding-inline: 16px; font-size: 1.12rem; }
+
+  .unit-row {
+    grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .swap-button {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 14px;
+    font-size: 1.35rem;
+  }
+
+  .unit-field select {
+    padding-inline: 10px 4px;
+    font-size: .92rem;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  button { transition: transform .12s ease, background-color .2s ease, color .2s ease; }
+  button { transition: transform .2s ease, background-color .2s ease, color .2s ease; }
 }

@@ -146,7 +146,22 @@ fromUnit.addEventListener("change", convert);
 toUnit.addEventListener("change", convert);
 
 swapButton.addEventListener("click", () => {
+  const currentValue = Number(amount.value);
+  const from = units.find(unit => unit.id === fromUnit.value);
+  const to = units.find(unit => unit.id === toUnit.value);
+
+  if (Number.isFinite(currentValue)) {
+    const converted = currentValue * from.factor / to.factor;
+    amount.value = Number(converted.toPrecision(12)).toString();
+  }
+
   [fromUnit.value, toUnit.value] = [toUnit.value, fromUnit.value];
+
+  swapButton.classList.remove("is-swapping");
+  void swapButton.offsetWidth;
+  swapButton.classList.add("is-swapping");
+
+  window.setTimeout(() => swapButton.classList.remove("is-swapping"), 220);
   convert();
 });
 

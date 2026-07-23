@@ -42,18 +42,20 @@
         <input id="amount" type="number" inputmode="decimal" value="8" step="any" autocomplete="off" />
       </div>
 
-      <div class="field">
-        <label for="fromUnit" data-i18n="from">จาก</label>
-        <select id="fromUnit"></select>
-      </div>
+      <div class="unit-row">
+        <div class="field unit-field">
+          <label for="fromUnit" data-i18n="from">จาก</label>
+          <select id="fromUnit"></select>
+        </div>
 
-      <button id="swapButton" class="swap-button" type="button" aria-label="สลับหน่วย" data-i18n-aria="swap">
-        <span aria-hidden="true">⇄</span>
-      </button>
+        <button id="swapButton" class="swap-button" type="button" aria-label="สลับหน่วย" data-i18n-aria="swap">
+          <span aria-hidden="true">⇄</span>
+        </button>
 
-      <div class="field">
-        <label for="toUnit" data-i18n="to">เป็น</label>
-        <select id="toUnit"></select>
+        <div class="field unit-field">
+          <label for="toUnit" data-i18n="to">เป็น</label>
+          <select id="toUnit"></select>
+        </div>
       </div>
 
       <section class="result-card" aria-live="polite" aria-atomic="true">

@@ -1,4 +1,4 @@
-const CACHE_NAME = "gukgu-v2";
+const CACHE_NAME = "gukgu-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
