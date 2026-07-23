@@ -110,11 +110,11 @@ const C = {
 };
 
 const T={
- th:{title:"แปลงหน่วย",category:"ประเภทหน่วย",amount:"จำนวน",from:"จาก",to:"เป็น",result:"ผล",swap:"สลับหน่วย",footer:"คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง",invalid:"กรุณาใส่ตัวเลข"},
- en:{title:"Unit converter",category:"Category",amount:"Value",from:"From",to:"To",result:"Result",swap:"Swap units",footer:"Calculated on your device. No data is sent anywhere.",invalid:"Enter a number"}
+ th:{title:"แปลงหน่วย",category:"ประเภทหน่วย",amount:"จำนวน",from:"จาก",to:"เป็น",result:"ผล",swap:"สลับหน่วย",footer:"คำนวณบนอุปกรณ์ของคุณ ไม่มีการส่งข้อมูลออกจากเครื่อง",invalid:"กรุณาใส่ตัวเลข",easyRead:"อ่านง่าย",showMethod:"แสดงวิธีคิด",hideMethod:"ซ่อนวิธีคิด",method:"วิธีคิด"},
+ en:{title:"Unit converter",category:"Category",amount:"Value",from:"From",to:"To",result:"Result",swap:"Swap units",footer:"Calculated on your device. No data is sent anywhere.",invalid:"Enter a number",easyRead:"Easy to read",showMethod:"Show calculation",hideMethod:"Hide calculation",method:"How it is calculated"}
 };
 
-const $=s=>document.querySelector(s), category=$("#category"), amount=$("#amount"), from=$("#fromUnit"), to=$("#toUnit"), result=$("#resultValue"), resultUnit=$("#resultUnit"), formula=$("#formulaText"), swap=$("#swapButton"), langButtons=[...document.querySelectorAll(".lang-button")];
+const $=s=>document.querySelector(s), category=$("#category"), amount=$("#amount"), from=$("#fromUnit"), to=$("#toUnit"), result=$("#resultValue"), resultUnit=$("#resultUnit"), formula=$("#formulaText"), swap=$("#swapButton"), smartResult=$("#smartResult"), easyResult=$("#easyResult"), explainButton=$("#explainButton"), explanationPanel=$("#explanationPanel"), explanationText=$("#explanationText"), langButtons=[...document.querySelectorAll(".lang-button")];
 let lang=localStorage.getItem("gukgu-language")||(navigator.language.toLowerCase().startsWith("th")?"th":"en");
 let categoryId=localStorage.getItem("gukgu-category")||"length";
 const cat=()=>C[categoryId];
@@ -150,6 +150,19 @@ function humanTime(totalSeconds){
   return sign+parts.join(" ");
 }
 
+
+function isNearlyInteger(value){ return Math.abs(value-Math.round(value))<1e-10; }
+function timeExplanation(value,targetUnit,easy){
+  const rules={week:{m:7,th:"วัน",en:["day","days"]},day:{m:24,th:"ชั่วโมง",en:["hour","hours"]},hour:{m:60,th:"นาที",en:["minute","minutes"]},min:{m:60,th:"วินาที",en:["second","seconds"]},sec:{m:1000,th:"มิลลิวินาที",en:["millisecond","milliseconds"]}};
+  const rule=rules[targetUnit.id];
+  if(!rule)return lang==="th"?`ผลลัพธ์แบบอ่านง่ายคือ ${easy}`:`The easy-to-read result is ${easy}.`;
+  const whole=Math.trunc(value), fraction=Math.abs(value-whole), smaller=fraction*rule.m;
+  if(lang==="th")return `${fmt(value)} ${targetUnit.names.th}\n= ${fmt(whole)} ${targetUnit.names.th} + ${fmt(fraction)} ${targetUnit.names.th}\n${fmt(fraction)} × ${rule.m} = ${fmt(smaller)} ${rule.th}\nดังนั้น = ${easy}`;
+  const next=Math.abs(smaller-1)<1e-10?rule.en[0]:rule.en[1];
+  return `${fmt(value)} ${targetUnit.names.en}\n= ${fmt(whole)} ${targetUnit.names.en} + ${fmt(fraction)} ${targetUnit.names.en}\n${fmt(fraction)} × ${rule.m} = ${fmt(smaller)} ${next}\nTherefore = ${easy}`;
+}
+function hideSmartResult(){smartResult.hidden=true;explanationPanel.hidden=true;explainButton.setAttribute("aria-expanded","false");explainButton.setAttribute("aria-label",T[lang].showMethod);}
+
 function convert(){
   const v=Number(amount.value), c=cat(), f=c.u.find(u=>u.id===from.value), t=c.u.find(u=>u.id===to.value);
   if(!Number.isFinite(v)||!f||!t){result.textContent="—";resultUnit.textContent="";formula.textContent=T[lang].invalid;return}
@@ -157,14 +170,17 @@ function convert(){
   result.textContent=fmt(cv);
   resultUnit.textContent=t.symbol;
   const equation=`${fmt(v)} ${f.symbol} = ${fmt(cv)} ${t.symbol}`;
-  if(categoryId==="time"){
+  formula.textContent=equation;
+  hideSmartResult();
+  if(categoryId==="time" && !isNearlyInteger(cv)){
     const easy=humanTime(baseValue);
-    formula.textContent=lang==="th"?`${equation}\nอ่านง่าย: ${easy}`:`${equation}\nEasy to read: ${easy}`;
-  }else{
-    formula.textContent=equation;
+    easyResult.textContent=easy;
+    explanationText.textContent=timeExplanation(cv,t,easy);
+    smartResult.hidden=false;
   }
 }
 function applyLanguage(l){lang=l;localStorage.setItem("gukgu-language",lang);document.documentElement.lang=lang;document.querySelectorAll("[data-i18n]").forEach(e=>e.textContent=T[lang][e.dataset.i18n]);document.querySelectorAll("[data-i18n-aria]").forEach(e=>e.setAttribute("aria-label",T[lang][e.dataset.i18nAria]));langButtons.forEach(b=>{const a=b.dataset.lang===lang;b.classList.toggle("is-active",a);b.setAttribute("aria-pressed",String(a))});document.title=lang==="th"?"gukgu — แปลงหน่วย":"gukgu — Unit converter";fillCategories();fillUnits(false);convert();}
 category.addEventListener("change",()=>{categoryId=category.value;localStorage.setItem("gukgu-category",categoryId);fillUnits(true);convert()}); amount.addEventListener("input",convert);from.addEventListener("change",convert);to.addEventListener("change",convert);
+explainButton.addEventListener("click",()=>{const opening=explanationPanel.hidden;explanationPanel.hidden=!opening;explainButton.setAttribute("aria-expanded",String(opening));explainButton.setAttribute("aria-label",opening?T[lang].hideMethod:T[lang].showMethod);});
 swap.addEventListener("click",()=>{const v=Number(amount.value),c=cat(),f=c.u.find(u=>u.id===from.value),t=c.u.find(u=>u.id===to.value);if(Number.isFinite(v)&&f&&t)amount.value=Number(out(t,base(f,v)).toPrecision(12)).toString();[from.value,to.value]=[to.value,from.value];swap.classList.remove("is-swapping");void swap.offsetWidth;swap.classList.add("is-swapping");setTimeout(()=>swap.classList.remove("is-swapping"),220);convert()});langButtons.forEach(b=>b.addEventListener("click",()=>applyLanguage(b.dataset.lang)));
 fillCategories();fillUnits(true);applyLanguage(lang);
